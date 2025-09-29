@@ -202,7 +202,7 @@ fn print_input(data: &[u8]) {
 
 fn process_actions(action: u8) -> Input {
     if action == 8 {
-        return Input {buttons: vec![ControllerButton::Null], code: 0}
+        return Input {buttons: vec![ControllerButton::Null], code: 8}
     }
     let mut buttons = vec![];
     determine_actions(action, &mut buttons);
