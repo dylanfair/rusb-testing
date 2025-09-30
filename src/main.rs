@@ -1,8 +1,31 @@
 use std::{time::Duration};
+use std::thread;
+use std::sync::mpsc::{self, Sender};
 
 use rusb::{Context, UsbContext, Direction, TransferType};
 
 fn main() {
+    let (tx, rx) = mpsc::channel();
+    thread::spawn(|| {
+        if let Err(e) = controller_listener(tx) {
+            eprintln!("USB thread error: {}", e);
+        } 
+    });
+
+    loop {
+        while let Ok(buttons) = rx.try_recv() {
+            println!("{:?}", buttons);
+            for button in buttons {
+                match button {
+                    ControllerButton::Cross => println!("Jumping!"),
+                    _ => {}
+                }
+            }
+        }
+    }
+}
+
+fn controller_listener(thread_tx: Sender<Vec<ControllerButton>>) -> Result<(), Box<dyn std::error::Error>> {
     let context = Context::new().unwrap();
 
     let current_devices = context.devices().unwrap();
@@ -31,7 +54,8 @@ fn main() {
                 match ds_handle.read_interrupt(ds_endpoint, &mut buf, Duration::from_millis(1000)) {
                     Ok(len) => {
                         // println!("{:?}", &buf[..len]);
-                        print_input(&buf[..len]);
+                        // print_input(&buf[..len]);
+                        send_input(&buf[..len], &thread_tx); 
                     }
                     Err(e) => {
                         eprintln!("Had an error reading devices: {}", e);
@@ -41,6 +65,7 @@ fn main() {
             }
         }
     }
+    Ok(())
 }
 
 #[derive(Debug, Clone)]
@@ -51,7 +76,6 @@ struct Input {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 enum ControllerButton {
-    Null,
     UpDpad,
     RightDpad,
     DownDpad,
@@ -152,33 +176,45 @@ fn determine_triggers(data: u8, buttons: &mut Vec<ControllerButton>) {
     return; 
 }
 
-fn print_input(data: &[u8]) {
-    let action_buttons = process_actions(data[5]);
-    let triggers = process_triggers(data[6]);
-    let left_joystick_direction = process_joystick_direction(&data[1..=2]);
-    let right_joystick_direction = process_joystick_direction(&data[3..=4]);
+// fn print_input(data: &[u8]) {
+//     let action_buttons = process_actions(data[5]);
+//     let triggers = process_triggers(data[6]);
+//     let left_joystick_direction = process_joystick_direction(&data[1..=2]);
+//     let right_joystick_direction = process_joystick_direction(&data[3..=4]);
 
-    println!("Buttons: {:?} - triggers: {:?} - left_joystick: {:?} - right_joystick: {:?}", action_buttons, triggers, left_joystick_direction, right_joystick_direction);
+//     println!("Buttons: {:?} - triggers: {:?} - left_joystick: {:?} - right_joystick: {:?}", action_buttons, triggers, left_joystick_direction, right_joystick_direction);
+// }
+
+fn send_input(data: &[u8], thread_tx: &Sender<Vec<ControllerButton>>) {
+    let mut action_buttons = process_actions(data[5]);
+    let mut triggers = process_triggers(data[6]);
+    // let left_joystick_direction = process_joystick_direction(&data[1..=2]);
+    // let right_joystick_direction = process_joystick_direction(&data[3..=4]);
+
+
+    action_buttons.append(&mut triggers);
+    if action_buttons.len() > 0 {
+        thread_tx.send(action_buttons).unwrap()
+    }
 }
 
-fn process_actions(action: u8) -> Input {
+fn process_actions(action: u8) -> Vec<ControllerButton> {
     if action == 8 {
-        return Input {buttons: vec![ControllerButton::Null], code: 8}
+        return vec![];
     }
     let mut buttons = vec![];
     determine_actions(action, &mut buttons);
-
-    return Input { buttons: buttons, code: action};
+    return buttons
 }
 
-fn process_triggers(trigger: u8) -> Input {
+fn process_triggers(trigger: u8) -> Vec<ControllerButton> {
     if trigger == 0 {
-        return Input {buttons: vec![ControllerButton::Null], code: 0}
+        return vec![];
     }
 
     let mut buttons = vec![];
     determine_triggers(trigger, &mut buttons);
-    return Input { buttons: buttons, code: trigger };
+    return buttons;
 }
 
 fn process_joystick_direction(joystick_data: &[u8]) -> (JoystickDirection, JoystickDirection) {
