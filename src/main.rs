@@ -80,115 +80,76 @@ enum JoystickDirection {
 }
 
 fn determine_actions(data: u8, buttons: &mut Vec<ControllerButton>) {
-    let new_data;
-    match data {
-        128.. => {
-            buttons.push(ControllerButton::Triangle);
-            new_data = data - 128;
-        }
-        64..128 => {
-            buttons.push(ControllerButton::Circle);
-            new_data = data - 64;
-        }
-        32..64 => {
-            buttons.push(ControllerButton::Cross);
-            new_data = data - 32;
-        }
-        16..32 => {
-            buttons.push(ControllerButton::Square);
-            new_data = data - 16;
-        }
-        ..16 => {
-            // Left + Up            | -1
-            // Left                 | -2
-            // Left + Down          | -3
-            // Down                 | -4
-            // Right + Down         | -5
-            // Right                | -6
-            // Up + Right           | -7
-            // Up                   | -8
-            match data {
-                9.. => panic!("Shouldn't see this: {}", data),
-                8 => {}
-                7 => {
-                    buttons.push(ControllerButton::LeftDpad);
-                    buttons.push(ControllerButton::UpDpad);
-                }
-                6 => {
-                    buttons.push(ControllerButton::LeftDpad);
-                }
-                5 => {
-                    buttons.push(ControllerButton::LeftDpad);
-                    buttons.push(ControllerButton::DownDpad);
-                }
-                4 => {
-                    buttons.push(ControllerButton::DownDpad);
-                }
-                3 => {
-                    buttons.push(ControllerButton::RightDpad);
-                    buttons.push(ControllerButton::DownDpad);
-                }
-                2 => {
-                    buttons.push(ControllerButton::RightDpad);
-                }
-                1 => {
-                    buttons.push(ControllerButton::RightDpad);
-                    buttons.push(ControllerButton::UpDpad);
-                }
-                0 => {
-                    buttons.push(ControllerButton::UpDpad);
-                }
-            }
-            return;
-        }
+    // Buttons
+    if data & 128 != 0 {
+        buttons.push(ControllerButton::Triangle);
+    }
+    if data & 64 != 0 {
+        buttons.push(ControllerButton::Circle);
+    }
+    if data & 32 != 0 {
+        buttons.push(ControllerButton::Cross);
+    }
+    if data & 16 != 0 {
+        buttons.push(ControllerButton::Square);
     }
 
-    return determine_actions(new_data, buttons)
+    // Dpad
+    let first_four_bits = 0b00001111 & data;
+    if first_four_bits == 8 {
+        return;
+    }
+
+    if first_four_bits == 7 {
+        buttons.push(ControllerButton::LeftDpad);
+        buttons.push(ControllerButton::UpDpad);
+    } else if first_four_bits == 6 {
+        buttons.push(ControllerButton::LeftDpad);
+    } else if first_four_bits == 5 {
+        buttons.push(ControllerButton::LeftDpad);
+        buttons.push(ControllerButton::DownDpad);
+    } else if first_four_bits == 4 {
+        buttons.push(ControllerButton::DownDpad);
+    } else if first_four_bits == 3 {
+        buttons.push(ControllerButton::RightDpad);
+        buttons.push(ControllerButton::DownDpad);
+    } else if first_four_bits == 2 {
+        buttons.push(ControllerButton::RightDpad);
+    } else if first_four_bits == 1 {
+        buttons.push(ControllerButton::RightDpad);
+        buttons.push(ControllerButton::UpDpad);
+    } else if first_four_bits == 0 {
+        buttons.push(ControllerButton::UpDpad);
+    }
+    return;
 }
 
 fn determine_triggers(data: u8, buttons: &mut Vec<ControllerButton>) {
-    let new_data;
-    match data {
-        128.. => {
+    if data & 128 != 0 {
             buttons.push(ControllerButton::RightJoystickPress);
-            new_data = data - 128;
-        },
-        64..128 => {
-            buttons.push(ControllerButton::LeftJoystickPress);
-            new_data = data - 64;
-        }, 
-        32..64 => {
-            buttons.push(ControllerButton::Options);
-            new_data = data - 32;
-        }, 
-        16..32 => {
-            buttons.push(ControllerButton::Share);
-            new_data = data - 16;
-        }, 
-        8..16 => {
-            buttons.push(ControllerButton::R2);
-            new_data = data - 8;
-        }, 
-        4..8 => {
-            buttons.push(ControllerButton::L2);
-            new_data = data - 4;
-        }, 
-        2..4 => {
-            buttons.push(ControllerButton::R1);
-            new_data = data - 2;
-        }, 
-        1..2 => {
-            buttons.push(ControllerButton::L1);
-            new_data = data - 1;
-        }, 
-        _ => panic!("Should not get here"),
-    };
-
-    if new_data == 0 {
-        return;
-    } else {
-        return determine_triggers(new_data, buttons)
     }
+    if data & 64 != 0 {
+            buttons.push(ControllerButton::LeftJoystickPress);
+    }
+    if data & 32 != 0 {
+            buttons.push(ControllerButton::Options);
+    }
+    if data & 16 != 0 {
+            buttons.push(ControllerButton::Share);
+    }
+    if data & 8 != 0 {
+            buttons.push(ControllerButton::R2);
+    }
+    if data & 4 != 0 {
+            buttons.push(ControllerButton::L2);
+    }
+    if data & 2 != 0 {
+            buttons.push(ControllerButton::R1);
+    }
+    if data & 1 != 0 {
+            buttons.push(ControllerButton::L1);
+    }
+    return; 
 }
 
 fn print_input(data: &[u8]) {
