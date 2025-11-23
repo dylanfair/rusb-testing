@@ -105,21 +105,21 @@ enum JoystickDirection {
 
 fn determine_actions(data: u8, buttons: &mut Vec<ControllerButton>) {
     // Buttons
-    if data & 128 != 0 {
+    if (data & (1 << 7)) > 0 {
         buttons.push(ControllerButton::Triangle);
     }
-    if data & 64 != 0 {
+    if (data & (1 << 6)) > 0 {
         buttons.push(ControllerButton::Circle);
     }
-    if data & 32 != 0 {
+    if (data & (1 << 5)) > 0 {
         buttons.push(ControllerButton::Cross);
     }
-    if data & 16 != 0 {
+    if (data & (1 << 4)) > 0 {
         buttons.push(ControllerButton::Square);
     }
 
     // Dpad
-    let first_four_bits = 0b00001111 & data;
+    let first_four_bits = 0x0F & data;
     if first_four_bits == 8 {
         return;
     }
@@ -149,28 +149,28 @@ fn determine_actions(data: u8, buttons: &mut Vec<ControllerButton>) {
 }
 
 fn determine_triggers(data: u8, buttons: &mut Vec<ControllerButton>) {
-    if data & 128 != 0 {
+    if (data & (1 << 7)) > 0 {
             buttons.push(ControllerButton::RightJoystickPress);
     }
-    if data & 64 != 0 {
+    if (data & (1 << 6)) > 0 {
             buttons.push(ControllerButton::LeftJoystickPress);
     }
-    if data & 32 != 0 {
+    if (data & (1 << 5)) > 0 {
             buttons.push(ControllerButton::Options);
     }
-    if data & 16 != 0 {
+    if (data & (1 << 4)) > 0 {
             buttons.push(ControllerButton::Share);
     }
-    if data & 8 != 0 {
+    if (data & (1 << 3)) > 0 {
             buttons.push(ControllerButton::R2);
     }
-    if data & 4 != 0 {
+    if (data & (1 << 2)) > 0 {
             buttons.push(ControllerButton::L2);
     }
-    if data & 2 != 0 {
+    if (data & (1 << 1)) > 0 {
             buttons.push(ControllerButton::R1);
     }
-    if data & 1 != 0 {
+    if (data & (1 << 0)) > 0 {
             buttons.push(ControllerButton::L1);
     }
     return; 
